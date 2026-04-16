@@ -12,3 +12,10 @@
 ```bash
 composer install
 composer dump-autoload
+```
+
+## Usage
+
+```bash
+php bin/analyze <project path>
+```
