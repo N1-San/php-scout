@@ -1,0 +1,25 @@
+#!/usr/bin/env php
+<?php
+
+require __DIR__ . '/../vendor/autoload.php';
+
+use PhpScout\Service\AnalyzerEngine;
+use PhpScout\Infrastructure\ConsoleReporter;
+use PhpScout\Infrastructure\JsonReporter;
+
+$path = $argv[1] ?? null;
+$options = getopt("", ["json", "summary", "verbose"]);
+
+if (!$path || !is_dir($path)) {
+    echo "Usage: php analyze <directory> [--json] [--summary] [--verbose]\n";
+    exit(1);
+}
+
+$engine = new AnalyzerEngine($path);
+$result = $engine->run();
+
+if (isset($options['json'])) {
+    echo (new JsonReporter())->render($result);
+} else {
+    echo (new ConsoleReporter($options))->render($result);
+}
