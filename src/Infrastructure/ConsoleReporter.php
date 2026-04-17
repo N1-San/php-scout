@@ -44,6 +44,47 @@ class ConsoleReporter {
 
         $output .= str_repeat("-", 45) . "\n";
 
+        $output .= "\n[Top Dependencies (External/Internal)]\n";
+        $allDeps = [];
+        foreach ($report->dependencies as $deps) {
+            foreach ($deps as $d) {
+                $allDeps[$d] = ($allDeps[$d] ?? 0) + 1;
+            }
+        }
+        arsort($allDeps); // Sort by most used
+        foreach (array_slice($allDeps, 0, 10) as $name => $count) {
+            $output .= sprintf(" - %-40s (%d hits)\n", $name, $count);
+        }
+
+        if ($report->isLaravel && !empty($report->laravelRoutes)) {
+            $output .= "\n[Laravel Routes (Sample)]\n";
+            foreach (array_slice($report->laravelRoutes, 0, 5) as $route) {
+                $output .= sprintf(" %-6s | %-20s -> %s\n", 
+                    $route['http_method'], 
+                    $route['uri'], 
+                    $route['action']
+                );
+            }
+        }
+
+        if ($report->isLaravel) {
+            $output .= "\n[Laravel Components]\n";
+            $metrics = $report->laravelMetrics;
+            
+            // Chunk the metrics into two columns for a cleaner CLI look
+            $chunks = array_chunk(array_keys($metrics), 2);
+            foreach ($chunks as $pair) {
+                $left = $pair[0];
+                $right = $pair[1] ?? '';
+                
+                $output .= sprintf(
+                    " %-15s: %-5d | %-15s: %-5d\n",
+                    $left, $metrics[$left],
+                    $right, ($right ? $metrics[$right] : 0)
+                );
+            }
+        }
+
         return $output;
     }
 }

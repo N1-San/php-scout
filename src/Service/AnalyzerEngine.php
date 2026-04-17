@@ -24,6 +24,9 @@ class AnalyzerEngine {
         $report = new ProjectReport();
         $this->detectLaravel($report);
 
+        if ($report->isLaravel) {
+            $this->parseLaravelRoutes($report);
+        }
         $directory = new RecursiveDirectoryIterator($this->root, RecursiveDirectoryIterator::SKIP_DOTS);
         
         // Filter out the junk before we even start iterating
@@ -44,13 +47,17 @@ class AnalyzerEngine {
             
             $lineCount = $this->countLines($file->getPathname());
             // if ($file->isDir()) continue;
-            
+            $filePath = $file->getPathname();
+            $report->addFileStats($this->countLines($filePath));
             // Use our new memory-safe line counter
             $lineCount = $this->countLines($file->getPathname());
             $report->addFileStats($lineCount);
             
             if ($file->getExtension() === 'php') {
                 $report->phpFiles++;
+                if ($report->isLaravel) {
+                    $this->classifyLaravelFile($filePath, $report);
+                }
                 $this->analyzePhpFile($file->getPathname(), $report);
             }
         }
@@ -103,5 +110,50 @@ class AnalyzerEngine {
 
     private function detectLaravel(ProjectReport $report): void {
         $report->isLaravel = file_exists($this->root . '/artisan');
+    }
+
+    private function parseLaravelRoutes(ProjectReport $report): void {
+        $routeFiles = ['/routes/web.php', '/routes/api.php'];
+        
+        foreach ($routeFiles as $file) {
+            $path = $this->root . $file;
+            if (!file_exists($path)) continue;
+
+            $code = file_get_contents($path);
+            $stmts = $this->parser->parse($code);
+
+            $traverser = new \PhpParser\NodeTraverser();
+            $visitor = new \PhpScout\Parsers\LaravelRouteVisitor();
+            $traverser->addVisitor($visitor);
+            $traverser->traverse($stmts);
+
+            $report->laravelRoutes = array_merge($report->laravelRoutes, $visitor->routes);
+        }
+    }
+
+    private function classifyLaravelFile(string $path, ProjectReport $report): void {
+        $map = [
+            'app/Http/Controllers' => 'Controllers',
+            'app/Models'           => 'Models',
+            'database/migrations'  => 'Migrations',
+            'database/seeders'     => 'Seeders',
+            'database/factories'   => 'Factories',
+            'app/Http/Middleware'  => 'Middleware',
+            'app/Jobs'             => 'Jobs',
+            'app/Events'           => 'Events',
+            'app/Listeners'        => 'Listeners',
+            'app/Mail'             => 'Mailables',
+            'app/Policies'         => 'Policies',
+            'app/Console/Commands' => 'Commands',
+            'app/Services'         => 'Services',
+            'app/Repositories'     => 'Repositories',
+        ];
+
+        foreach ($map as $dir => $key) {
+            if (str_contains($path, $dir)) {
+                $report->laravelMetrics[$key]++;
+                return;
+            }
+        }
     }
 }
