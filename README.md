@@ -1,6 +1,6 @@
 # PHP Scout
 
-**PHP Scout** is a high-performance, production-grade CLI tool designed for senior architects to analyze large-scale PHP and Laravel codebases. It uses **Abstract Syntax Tree (AST)** parsing to provide deep insights into code structure and metrics.
+**PHP Scout** is a high-performance, production-grade CLI tool designed to analyze large-scale PHP and Laravel codebases. It uses **Abstract Syntax Tree (AST)** parsing to provide deep insights into code structure and metrics.
 
 ## Features
 - **Deep Analysis:** Detects classes, methods, and namespaces using `nikic/php-parser`.
